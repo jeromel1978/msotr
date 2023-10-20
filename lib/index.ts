@@ -24,7 +24,7 @@ type Tables = {
   };
 };
 
-type Replacements = {
+export type Replacements = {
   [key: string]: string | ExcelData[] | Tables[] | undefined;
   XLSX?: ExcelData[];
   TABLES?: Tables[];
@@ -70,7 +70,7 @@ const ReplaceBasic = async (Entries: ADMZip.IZipEntry[], Replacements: Replaceme
             const Ps = C["p:spTree"][0]["p:sp"][0]["p:txBody"][0]["a:p"];
             for (let [j, P] of Ps.entries())
               if (P) {
-                if (P["a:r"].length > 2) {
+                if (P["a:r"]?.length > 2) {
                   const T = P["a:r"].map((R: any) => R["a:t"][0]);
                   if (T.join("") === Tag(Key)) {
                     SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][0]["p:txBody"][0]["a:p"][j]["a:r"][0][

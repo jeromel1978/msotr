@@ -1,11 +1,12 @@
-#MSOTR
+# MSOTR
 
-##This module is in very early development
+## This module is in very early development
 
-##Description
+## Description
+
 Replace MS Office template placeholders with specified content
 
-##Requirements
+## Requirements
 
 Placeholders in Office document must be encased in "{" and "}"
 
@@ -17,7 +18,8 @@ Special nodes:
 
 Either URL or Local are required to import template
 
-#CLI Usage
+# CLI Usage
+
 node ./dist/msotr.js "[\path\to\input].json" "[\path\to\template].pptx" "[\path\to\output].pptx"
 
 Function Parameters
