@@ -1,9 +1,9 @@
 import fs from "fs";
 import msotr from "./index";
 
-for (let i = 0; i < process.argv.length; ++i) {
-  console.log(`index ${i} argument -> ${process.argv[i]}`);
-}
+// for (let i = 0; i < process.argv.length; ++i) {
+//   console.log(`index ${i} argument -> ${process.argv[i]}`);
+// }
 if (!!process.argv[3]) {
   const f = fs.readFileSync(process.argv[2]);
   const Replacements = JSON.parse(f.toString());

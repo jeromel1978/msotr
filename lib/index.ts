@@ -8,15 +8,15 @@ type Props = {
   Out?: string;
 };
 
-type CellData = { Address: { Row: number; Col: number }; Name: string; Value: string };
+export type CellData = { Address: { Row: number; Col: number }; Name: string; Value: string };
 
-type ExcelData = {
+export type ExcelData = {
   Name: string;
   Workbook: string;
   Data: CellData[];
 };
 
-type Tables = {
+export type Tables = {
   Name: string;
   Headers: string[];
   Row: {
@@ -67,24 +67,27 @@ const ReplaceBasic = async (Entries: ADMZip.IZipEntry[], Replacements: Replaceme
           }
         } else {
           for (let [i, C] of SlideContent["p:sld"]["p:cSld"].entries()) {
-            const Ps = C["p:spTree"][0]["p:sp"][0]["p:txBody"][0]["a:p"];
-            for (let [j, P] of Ps.entries())
-              if (P) {
-                if (P["a:r"]?.length > 2) {
-                  const T = P["a:r"].map((R: any) => R["a:t"][0]);
-                  if (T.join("") === Tag(Key)) {
-                    SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][0]["p:txBody"][0]["a:p"][j]["a:r"][0][
-                      "a:t"
-                    ][0] = Value;
-                    delete SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][0]["p:txBody"][0]["a:p"][j][
-                      "a:r"
-                    ][1];
-                    delete SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][0]["p:txBody"][0]["a:p"][j][
-                      "a:r"
-                    ][2];
+            const SPs = C["p:spTree"][0]["p:sp"];
+            for (let [j, SP] of SPs.entries()) {
+              const Ps = SP["p:txBody"][0]["a:p"];
+              for (let [k, P] of Ps.entries())
+                if (P) {
+                  if (P["a:r"]?.length > 2) {
+                    const T = P["a:r"].map((R: any) => R["a:t"][0]);
+                    if (T.join("") === Tag(Key)) {
+                      SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][j]["p:txBody"][0]["a:p"][k]["a:r"][0][
+                        "a:t"
+                      ][0] = Value;
+                      delete SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][j]["p:txBody"][0]["a:p"][k][
+                        "a:r"
+                      ][1];
+                      delete SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][j]["p:txBody"][0]["a:p"][k][
+                        "a:r"
+                      ][2];
+                    }
                   }
                 }
-              }
+            }
 
             const builder = new xml2js.Builder();
             NewContent = builder.buildObject(SlideContent);
@@ -151,7 +154,7 @@ const ReplaceChartData = (ChartDetails: any, NewChartData: ExcelData) => {
   if (!NewChartData) return;
   for (
     let x = 0;
-    x < ChartArea?.["c:ser"]?.[0]?.["c:val"]?.[0]?.["c:numRef"]?.[0]?.["c:numCache"]?.[0]?.["c:pt"].length || 0;
+    x < ChartArea?.["c:ser"]?.[0]?.["c:val"]?.[0]?.["c:numRef"]?.[0]?.["c:numCache"]?.[0]?.["c:pt"]?.length || 0;
     x++
   )
     if (

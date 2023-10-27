@@ -1,6 +1,6 @@
 {
   "name": "msotr",
-  "version": "0.2.1",
+  "version": "0.2.4",
   "description": "Replace MS Office template placeholders with specified content",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
