@@ -1,0 +1,40 @@
+{
+  "Date": "October 27, 2023",
+  "FirstName": "John",
+  "LastName": "Doh",
+  "Salary": "$150,338.22",
+  "XLSX": [
+    {
+      "Name": "Hours",
+      "Workbook": "Microsoft_Excel_Worksheet.xlsx",
+      "Data": [
+        {
+          "Address": {
+            "Row": 1,
+            "Col": 1
+          },
+          "Name": "Monday",
+          "Value": "8"
+        },
+        {
+          "Address": {
+            "Row": 2,
+            "Col": 1
+          },
+          "Name": "Tuesday",
+          "Value": "8"
+        }
+      ]
+    }
+  ],
+  "TABLES": [
+    {
+      "Name": "AccountOverview",
+      "Headers": ["Name", "Time In", "Time Out"],
+      "Data": [
+        ["John", "08:00", "16:00"],
+        ["Jane", "08:00", "16:00"]
+      ]
+    }
+  ]
+}

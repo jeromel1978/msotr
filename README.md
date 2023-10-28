@@ -13,10 +13,31 @@ Placeholders in Office document must be encased in "{" and "}"
 JSON used for replacing content do not need the curly braces
 Special nodes:
 
-- XLSX - used for PPTX embedded charts and related tables
-- TABLES - Used for PPTX tables
+- XLSX
+  - used for PPTX embedded charts and related tables
+- TABLES
+  - Used for PPTX tables
+  - Template Requires Header Row and two rows
+  - Placeholder name must be somewhere in the table
 
 Either URL or Local are required to import template
+
+## Sample
+
+JSON Sample format in "sample.json"
+
+## Element Requirements
+
+- XLSX Element requirements
+
+  - Name - Placeholder name
+  - Workbook - Workbook name for referencing embedded Excel file
+  - Data - See sample for format
+
+- TABLES Element requirements
+  - Name - Placeholder name
+  - Headers - Array of strings
+  - Data - 2 dimentional array of string
 
 # CLI Usage
 

@@ -16,18 +16,16 @@ export type ExcelData = {
   Data: CellData[];
 };
 
-export type Tables = {
+export type Table = {
   Name: string;
   Headers: string[];
-  Row: {
-    Col: string[];
-  };
+  Data: string[][];
 };
 
 export type Replacements = {
-  [key: string]: string | ExcelData[] | Tables[] | undefined;
+  [key: string]: string | ExcelData[] | Table[] | undefined;
   XLSX?: ExcelData[];
-  TABLES?: Tables[];
+  TABLES?: Table[];
 };
 
 const TagOpen = "{";
@@ -50,14 +48,13 @@ const DecodeXml = (Unsafe: string) => {
     .replaceAll(/&apos;/g, "'");
 };
 
-const ReplaceBasic = async (Entries: ADMZip.IZipEntry[], Replacements: Replacements) => {
-  const Slides = Entries.filter((E) => E.entryName.startsWith("ppt/slides/") && !E.entryName.endsWith(".rels"));
+const ReplaceBasic = async (Entries: ADMZip.IZipEntry[], Replacements: Replacements, Category: string) => {
+  const Slides = Entries.filter((E) => E.entryName.startsWith(`ppt/${Category}/`) && !E.entryName.endsWith(".rels"));
   for (let x = 0; x < Slides.length; x++) {
     const TargetSlide = Slides[x];
     let NewContent = TargetSlide.getData().toString();
-    let SlideContent = await xml2js.parseStringPromise(NewContent);
     let Changed = false;
-    Object.entries(Replacements).map(([Key, Value]) => {
+    for (const [Key, Value] of Object.entries(Replacements)) {
       Changed = true;
       if (NewContent.includes(Key)) {
         if (NewContent.includes(Tag(Key))) {
@@ -66,6 +63,7 @@ const ReplaceBasic = async (Entries: ADMZip.IZipEntry[], Replacements: Replaceme
             NewContent = NewContent.replaceAll(Tag(Key), EncodeXml(StringValue));
           }
         } else {
+          let SlideContent = await xml2js.parseStringPromise(NewContent);
           for (let [i, C] of SlideContent["p:sld"]["p:cSld"].entries()) {
             const SPs = C["p:spTree"][0]["p:sp"];
             for (let [j, SP] of SPs.entries()) {
@@ -94,7 +92,7 @@ const ReplaceBasic = async (Entries: ADMZip.IZipEntry[], Replacements: Replaceme
           }
         }
       }
-    });
+    }
     if (Changed) {
       const EntryNames = Entries.map((E) => E.entryName);
       const TargetIndex = EntryNames.indexOf(TargetSlide.entryName);
@@ -182,6 +180,216 @@ const ReplaceCharts = async (Entries: ADMZip.IZipEntry[], Replacements: ExcelDat
   }
   return;
 };
+const RandomNumber = () => {
+  let str = Math.floor(100000000 + Math.random() * 900000000).toString();
+  while (str.length < 9) {
+    str = "0" + str;
+  }
+  return str;
+};
+const GridColBasic = (Width: number, uri?: string) => {
+  const Out: any = {
+    $: { w: Width.toString() },
+  };
+  Out["a:extLst"] = [
+    {
+      "a:ext": [
+        {
+          $: {
+            uri: uri,
+          },
+          "a16:colId": [
+            {
+              $: { "xmlns:a16": "http://schemas.microsoft.com/office/drawing/2014/main", val: RandomNumber() },
+            },
+          ],
+        },
+      ],
+    },
+  ];
+  return Out;
+};
+const TableColBasic = {
+  "a:txBody": [{ "a:bodyPr": [{}], "a:lstStyle": [{}], "a:p": [{ "a:r": [{ "a:t": [""] }] }] }],
+};
+const TableRowBasic = (Height: number, uri: string, Cols: number) => {
+  return {
+    $: { h: Height.toString() },
+    "a:tc": Array(Cols).fill(TableColBasic),
+    "a:extLst": [
+      {
+        "a:ext": [
+          {
+            $: { uri: uri },
+            // "a16:rowId": {
+            //   $: { "xmlns:a16": "http://schemas.microsoft.com/office/drawing/2014/main", val: RandomNumber() },
+            // },
+          },
+        ],
+      },
+    ],
+  };
+};
+const ReplaceTables = async (Entries: ADMZip.IZipEntry[], Replacements: Table[]) => {
+  const Slides = Entries.filter((E) => E.entryName.startsWith(`ppt/slides/`) && !E.entryName.endsWith(".rels"));
+  for (let iSlide = 0; iSlide < Slides.length; iSlide++) {
+    const TargetSlide = Slides[iSlide];
+    let NewContent = TargetSlide.getData().toString();
+    let Changed = false;
+    for (const [Key, TableDetails] of Object.entries(Replacements)) {
+      Changed = true;
+      if (NewContent.includes(Key)) {
+        let SlideContent = await xml2js.parseStringPromise(NewContent);
+        for (let [iSlideContent, C] of SlideContent["p:sld"]["p:cSld"].entries()) {
+          const GFs = C["p:spTree"][0]["p:graphicFrame"];
+          if (!GFs) break;
+          for (let [iGF, GF] of GFs.entries()) {
+            for (let [iG, G] of GF["a:graphic"].entries()) {
+              for (let [iGD, GD] of G["a:graphicData"].entries()) {
+                if (!GD["a:tbl"]) break;
+                for (let [iT, T] of GD["a:tbl"].entries()) {
+                  const TableContent = T["a:tr"]
+                    .map((tr: any) =>
+                      tr["a:tc"]
+                        .map((tc: any) =>
+                          tc["a:txBody"][0]["a:p"][0]["a:r"]
+                            ? tc["a:txBody"][0]["a:p"][0]["a:r"].map((r: any) => (r["a:t"] ? r["a:t"][0] : "")).join("")
+                            : ""
+                        )
+                        .join("")
+                    )
+                    .join("");
+                  if (TableContent.includes(Tag(TableDetails.Name))) {
+                    let TargetTable =
+                      SlideContent["p:sld"]["p:cSld"][iSlideContent]["p:spTree"][0]["p:graphicFrame"][iGF]["a:graphic"][
+                        iG
+                      ]["a:graphicData"][iGD]["a:tbl"][iT];
+                    let Original = {
+                      ...SlideContent["p:sld"]["p:cSld"][iSlideContent]["p:spTree"][0]["p:graphicFrame"][iGF][
+                        "a:graphic"
+                      ][iG]["a:graphicData"][iGD]["a:tbl"][iT],
+                    };
+                    const GridColumnDefinition = { ...TargetTable["a:tblGrid"][0]["a:gridCol"][0] };
+                    const TableRowHDef = TargetTable["a:tr"][0];
+                    const ColDiff = TableDetails.Headers.length - TargetTable["a:tr"][1]["a:tc"].length;
+                    for (let c = 0; c < ColDiff; c++) {
+                      TargetTable["a:tblGrid"][0]["a:gridCol"].push({
+                        $: { w: GridColumnDefinition["$"].w },
+                        "a:extLst": [
+                          {
+                            "a:ext": [
+                              {
+                                $: {
+                                  uri: GridColumnDefinition["a:extLst"][0]["a:ext"][0]["$"].uri,
+                                },
+                                "a16:colId": [
+                                  {
+                                    $: {
+                                      "xmlns:a16": "http://schemas.microsoft.com/office/drawing/2014/main",
+                                      val: GridColumnDefinition["a:extLst"][0]["a:ext"][0]["a16:colId"][0]["$"].val,
+                                    },
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      });
+                      TargetTable["a:tr"][0]["a:tc"].push({
+                        "a:txBody": [{ "a:bodyPr": [""], "a:lstStyle": [""], "a:p": [{ "a:r": [{ "a:t": [""] }] }] }],
+                        "a:tcPr": [
+                          {
+                            "a:solidFill": [
+                              {
+                                "a:srgbClr": [
+                                  {
+                                    $: {
+                                      val: TableRowHDef["a:tc"][0]["a:tcPr"][0]["a:solidFill"][0]["a:srgbClr"][0]["$"]
+                                        .val,
+                                    },
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      });
+                      TargetTable["a:tr"][1]["a:tc"].push({
+                        "a:txBody": [{ "a:bodyPr": [""], "a:lstStyle": [""], "a:p": [{ "a:r": [{ "a:t": [""] }] }] }],
+                      });
+                      TargetTable["a:tr"][2]["a:tc"].push({
+                        "a:txBody": [{ "a:bodyPr": [""], "a:lstStyle": [""], "a:p": [{ "a:r": [{ "a:t": [""] }] }] }],
+                      });
+                    }
+                    for (let c = 0; c < TableDetails.Headers.length; c++) {
+                      TargetTable["a:tr"][0]["a:tc"][c]["a:txBody"][0]["a:p"][0]["a:r"] = [
+                        { "a:t": [TableDetails.Headers[c]] },
+                      ];
+                    }
+                    const TableRowGDefs = [{ ...TargetTable["a:tr"][1] }, { ...TargetTable["a:tr"][2] }];
+                    for (let r = 0; r < TableDetails.Data.length; r++) {
+                      for (let c = 0; c < TableDetails.Data[r].length; c++) {
+                        if (r + 1 >= TargetTable["a:tr"].length) {
+                          TargetTable["a:tr"].push({
+                            $: { h: TableRowGDefs[r % 2]["$"].h },
+                            "a:tc": [],
+                            "a:extLst": [
+                              {
+                                "a:ext": [
+                                  {
+                                    $: { uri: TableRowGDefs[r % 2]["a:extLst"][0]["a:ext"][0]["$"].uri },
+                                    "a16:rowId": {
+                                      $: {
+                                        "xmlns:a16": "http://schemas.microsoft.com/office/drawing/2014/main",
+                                        val: RandomNumber(),
+                                      },
+                                    },
+                                  },
+                                ],
+                              },
+                            ],
+                          });
+                        }
+                        if (!TargetTable["a:tr"][r + 1]["a:tc"][c])
+                          TargetTable["a:tr"][r + 1]["a:tc"].push({
+                            "a:txBody": [
+                              {
+                                "a:bodyPr": [""],
+                                "a:lstStyle": [""],
+                                "a:p": [
+                                  {
+                                    "a:pPr": TableRowGDefs[r % 2]["a:tc"][c]["a:txBody"][0]["a:p"][0]["a:pPr"],
+                                    "a:r": [{ "a:t": [""] }],
+                                  },
+                                ],
+                              },
+                            ],
+                          });
+                        if (r + 1 < TargetTable["a:tr"].length) {
+                          TargetTable["a:tr"][r + 1]["a:tc"][c]["a:txBody"][0]["a:p"][0]["a:r"] = [
+                            { "a:t": [TableDetails.Data[r][c]] },
+                          ];
+                          delete TargetTable["a:tr"][r + 1]["a:tc"][c]["a:txBody"][0]["a:p"][0]["a:endParaRPr"];
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          const builder = new xml2js.Builder();
+          NewContent = builder.buildObject(SlideContent);
+        }
+      }
+    }
+    if (Changed) {
+      const EntryNames = Entries.map((E) => E.entryName);
+      const TargetIndex = EntryNames.indexOf(TargetSlide.entryName);
+      Entries[TargetIndex].setData(Buffer.from(NewContent));
+    }
+  }
+};
 
 const msotr = async ({ URL, Local, Replacements, Out }: Props) => {
   if (!URL && !Local) return;
@@ -199,7 +407,9 @@ const msotr = async ({ URL, Local, Replacements, Out }: Props) => {
   let BasicReplacements = { ...Replacements };
   delete BasicReplacements.XLSX;
   delete BasicReplacements.TABLES;
-  await ReplaceBasic(Entries, BasicReplacements);
+  if (!!Replacements.TABLES) await ReplaceTables(Entries, Replacements.TABLES);
+  await ReplaceBasic(Entries, BasicReplacements, "slides");
+  await ReplaceBasic(Entries, BasicReplacements, "charts");
   if (Replacements.XLSX) {
     await ReplaceXLSX(Entries, Replacements.XLSX ?? []);
     await ReplaceCharts(Entries, Replacements.XLSX ?? []);
