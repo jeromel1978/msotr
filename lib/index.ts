@@ -72,10 +72,10 @@ const ReplaceBasic = async (Entries: ADMZip.IZipEntry[], Replacements: Replaceme
                 if (P) {
                   if (P["a:r"]?.length > 2) {
                     const T = P["a:r"].map((R: any) => R["a:t"][0]);
-                    if (T.join("") === Tag(Key)) {
+                    if (T.join("").includes(Tag(Key))) {
                       SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][j]["p:txBody"][0]["a:p"][k]["a:r"][0][
                         "a:t"
-                      ][0] = Value;
+                      ][0] = T.join("").replace(Tag(Key), Value);
                       delete SlideContent["p:sld"]["p:cSld"][i]["p:spTree"][0]["p:sp"][j]["p:txBody"][0]["a:p"][k][
                         "a:r"
                       ][1];
