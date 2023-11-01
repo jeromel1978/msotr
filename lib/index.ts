@@ -321,6 +321,12 @@ const ReplaceTables = async (Entries: ADMZip.IZipEntry[], Replacements: Table[])
                         "a:txBody": [{ "a:bodyPr": [""], "a:lstStyle": [""], "a:p": [{ "a:r": [{ "a:t": [""] }] }] }],
                       });
                     }
+                    for (let c = ColDiff; c < 0; c++) {
+                      TargetTable["a:tblGrid"][0]["a:gridCol"].pop();
+                      TargetTable["a:tr"][0]["a:tc"].pop();
+                      TargetTable["a:tr"][1]["a:tc"].pop();
+                      TargetTable["a:tr"][2]["a:tc"].pop();
+                    }
                     for (let c = 0; c < TableDetails.Headers.length; c++) {
                       TargetTable["a:tr"][0]["a:tc"][c]["a:txBody"][0]["a:p"][0]["a:r"] = [
                         { "a:t": [TableDetails.Headers[c]] },
