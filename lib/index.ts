@@ -264,13 +264,10 @@ const ReplaceTables = async (Entries: ADMZip.IZipEntry[], Replacements: Table[])
                       SlideContent["p:sld"]["p:cSld"][iSlideContent]["p:spTree"][0]["p:graphicFrame"][iGF]["a:graphic"][
                         iG
                       ]["a:graphicData"][iGD]["a:tbl"][iT];
-                    let Original = {
-                      ...SlideContent["p:sld"]["p:cSld"][iSlideContent]["p:spTree"][0]["p:graphicFrame"][iGF][
-                        "a:graphic"
-                      ][iG]["a:graphicData"][iGD]["a:tbl"][iT],
-                    };
-                    const GridColumnDefinition = { ...TargetTable["a:tblGrid"][0]["a:gridCol"][0] };
+                    const ColumnNumber = TargetTable["a:tblGrid"][0]["a:gridCol"].length;
+                    const GridColumnDefinition = { ...TargetTable["a:tblGrid"][0]["a:gridCol"][ColumnNumber - 1] };
                     const TableRowHDef = TargetTable["a:tr"][0];
+                    // Add more columns
                     const ColDiff = TableDetails.Headers.length - TargetTable["a:tr"][1]["a:tc"].length;
                     for (let c = 0; c < ColDiff; c++) {
                       TargetTable["a:tblGrid"][0]["a:gridCol"].push({
@@ -321,6 +318,7 @@ const ReplaceTables = async (Entries: ADMZip.IZipEntry[], Replacements: Table[])
                         "a:txBody": [{ "a:bodyPr": [""], "a:lstStyle": [""], "a:p": [{ "a:r": [{ "a:t": [""] }] }] }],
                       });
                     }
+                    // Remove Excess columns
                     for (let c = ColDiff; c < 0; c++) {
                       TargetTable["a:tblGrid"][0]["a:gridCol"].pop();
                       TargetTable["a:tr"][0]["a:tc"].pop();
